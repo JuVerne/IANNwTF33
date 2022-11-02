@@ -1,0 +1,231 @@
+---
+title: "AaronsRedoofCompgenAnalysis"
+author: '66'
+date: "8/10/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+library(tidyverse)
+library(aida)
+library(dplyr)
+library(lsa)
+```
+
+## Including Plots
+
+You can also embed plots, for example:# plan for analysis
+
+# goal: figure out (1) if accuracy in identifying source of choreography is above chance or not, (2) how this accuracy differs between comp and human gen choreographies
+# (3) how accuracy is influenced by the form of the agent
+
+#From Kohinoor:
+
+# choreo = case_when((choreono==25|choreono==26|choreono==27|
+#               choreono==28|choreono==29|choreono==31|choreono==32|choreono==34)~2,TRUE~ 1)) %>% #2=compgen, 1=humangen
+
+# suggests: choreo 25 - 34 are comp. gen, rest is human.gen ?!? how does she know !?!
+
+# (3)
+# 3.1 columns  *agents*: HC12 - robot, 13 -robot, 15- human, 17- human, 25- robot, 26-robot, 27,28 - human, 18,38 - robot, 39,40 - human, 29,31 - robot, 32,34 - human
+
+
+```{r pressure, echo=FALSE}
+rawdata1 <- read_csv("compgendance2_rawdata_exp1_comb1.csv")
+
+
+
+catdata <- rawdata1  %>% filter(row_number()>2) %>%
+  dplyr::filter(progress=="100") %>% 
+  dplyr::filter(`28CA_24`==60) %>% #attention criteria x 1
+  dplyr::filter(`40HA_24`==30) %>% #attention criteria x 2
+  dplyr::select(-`28CA_24`,-`40HA_24`) %>% # remove attention check Qs 
+  dplyr::filter(VideoCheckQ1==1) %>% 
+  dplyr::filter(VideoCheckQ2==1) %>% # check if ppts understood the video 
+  select(starts_with('HC'))
+
+catdata_compgen <- catdata %>% 
+  dplyr::select(-'HC12', -'HC13', -'HC15',-'HC17',-'HC18',-'HC38',-'HC39', -'HC40')
+
+catdata_humangen <- catdata %>% 
+  dplyr::select('HC12', 'HC13', 'HC15','HC17','HC18','HC38','HC39', 'HC40')
+
+catdata1_hgen <- catdata_humangen %>% 
+  pivot_longer(
+  cols = -0,
+  names_to = "trial",
+  values_to = "selection"
+  ) %>%
+  filter(!selection == "NA")
+
+catdata1_cgen <- catdata_compgen %>% 
+  pivot_longer(
+    cols = -0,
+    names_to = "trial",
+    values_to = "selection"
+  ) %>%
+  filter(!selection == "NA")
+
+random_baseline <- c(rep(1, times = 395),rep(2, times = 395))
+
+
+overall_accuracy_comp <- catdata1_cgen %>%
+  count(selection) %>% 
+  mutate(
+    "percentage" = n/sum(n)
+  ) %>% 
+  dplyr::select('percentage')%>% filter(row_number() == 2)
+
+overall_accuracy_hum <- catdata1_hgen %>%
+  count(selection) %>% 
+  mutate(
+    "percentage" = n/sum(n)
+  ) %>% 
+  dplyr::select('percentage')%>% filter(row_number() == 1)
+
+```
+# For both kinds of choreographies, peoples overall accuracy is very slightly worse than chance! 
+
+
+## 3. compare between agent forms
+# 3.1 compare human vs robot avatar for computergen choreographies
+
+
+```{r pressure, echo=FALSE}
+
+# choose all columns where a robot is dancing -> know from survey
+
+catdata_compgen_robot <- catdata_compgen %>%
+  dplyr::select(-3,-4,-7,-8)
+
+# pivot the tibble to make it easier to analyse
+
+catdata2_cgen_rob <- catdata_compgen_robot %>% 
+  pivot_longer(
+    cols = -0,
+    names_to = "trial",
+    values_to = "selection"
+  ) %>%
+  filter(!selection == "NA")
+
+# compute accuracy when the choreographys are computer gen and the avatar is robotic
+
+accuracy_comp_rob <- catdata2_cgen_rob %>%
+  count(selection) %>% 
+  mutate(
+    "percentage" = n/sum(n)
+  ) %>% 
+  dplyr::select('percentage')%>% filter(row_number() == 2) %>% as.numeric()
+
+
+catdata_compgen_human <- catdata_compgen %>%
+  dplyr::select(-1,-2,-5,-6)
+
+
+# pivot the tibble to make it easier to analyse
+
+catdata2_cgen_hum <- catdata_compgen_human %>% 
+  pivot_longer(
+    cols = -0,
+    names_to = "trial",
+    values_to = "selection"
+  ) %>%
+  filter(!selection == "NA")
+
+# compute accuracy when the choreographys are comp gen and the avatar is human
+
+accuracy_comp_hum <- catdata2_cgen_hum %>%
+  count(selection) %>% 
+  mutate(
+    "percentage" = n/sum(n)
+  ) %>% 
+  dplyr::select('percentage')%>% filter(row_number() == 1) %>% as.numeric()
+
+
+
+```
+```{r pressure, echo=FALSE}
+# 3.2: compute accuracy for humangen choreographies for different agent forms
+
+# 1. robot
+
+catdata_humangen_robot <- catdata_humangen %>%
+  dplyr::select('HC12', 'HC13', 'HC18', 'HC38')
+
+catdata2_hgen_rob <- catdata_humangen_robot %>% 
+  pivot_longer(
+    cols = -0,
+    names_to = "trial",
+    values_to = "selection"
+  ) %>%
+  filter(!selection == "NA")
+
+# compute accuracy when the choreographys are human gen and the avatar is robotic
+
+accuracy_human_rob <- catdata2_hgen_rob %>%
+  count(selection) %>% 
+  mutate(
+    "percentage" = n/sum(n)
+  ) %>% 
+  dplyr::select('percentage')%>% filter(row_number() == 1) %>% as.numeric()
+
+# 2. human
+
+catdata_humangen_human <- catdata_humangen %>%
+  dplyr::select('HC15','HC17','HC39','HC40')
+
+catdata2_hgen_human <- catdata_humangen_human %>% 
+  pivot_longer(
+    cols = -0,
+    names_to = "trial",
+    values_to = "selection"
+  ) %>%
+  filter(!selection == "NA")
+
+# compute accuracy when the choreographys are human gen and the avatar is robotic
+
+accuracy_human_hum <- catdata2_hgen_human %>%
+  count(selection) %>% 
+  mutate(
+    "percentage" = n/sum(n)
+  ) %>% 
+  dplyr::select('percentage')%>% filter(row_number() == 1) %>% as.numeric()
+
+accuracy_human_hum
+accuracy_human_rob
+
+accuracy_comp_hum
+accuracy_comp_rob
+
+
+```
+
+# For humangen choreographies, it seems as though people are significantly (?) more accurate when the agent is human rather than robot 
+
+# In contrast there seems little different between agents for computer gen choreos
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
