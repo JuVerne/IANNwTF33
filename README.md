@@ -1,4 +1,4 @@
-# Homework 10
+# Homework 4
 
 ## Task 1 - Low-/Highpass filter (15 points)
 It is your task to implement the `passfilter` function which takes an input signal (`arr`), a cutoff frequency (`cutoff`), the kind of filter (`kind`, default=`lowpass`) and the sampling rate of the signal (`srate`, default=`256`). The options for the `kind` parameter should be `lowpass` (remove frequencies > `cutoff`, let frequencies <= `cutoff` pass) and `highpass` (remove frequencies < `cutoff`, let frequencies >= `cutoff` pass). You can get an array containing the frequency for each element of the array using `fft.fftfreq` (make sure to include the sampling rate here). To remove certain frequencies from the signal (`arr`), transform the signal into the frequency domain (`fft.fft`), set the array elements of the transformed signal less than or greater than (depending on `kind`) the cutoff to 0 and transform back to the time domain (`fft.ifft`).
