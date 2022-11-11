@@ -1,0 +1,81 @@
+import numpy as np
+import tensorflow as tf
+import tensorflow_datasets as tfds
+from tensorflow.keras.layers import Dense
+import random
+
+
+# create training data
+
+x = np.random.normal(1,0,100)
+t = np.array([i**3 - i**2 for i in x])
+
+
+def sigmoid(x):
+    
+    return 1/(1 + np.exp(-x))
+
+def sigmoid_prime(x):
+    
+    return sigmoid(x)*(1-sigmoid(x))
+
+
+def relu(x):
+    return max(0, x)
+
+def relu_prime(x):    
+    return 1 if relu(x) > 0 else 0
+
+
+        
+   
+class HiddenLayer(object):
+    
+    def __init__(self, n_units, input_units, next_layer, last_layer):
+        
+        # weights connecting the last layer to the current one
+        self.weights = generate_matrix(n_units, input_units)
+        
+        # weights connecting the next layer to the current one, we import this from another class
+        self.weights_next = next_layer.weights
+        self.error_next = next_layer.errors
+        
+        #biases for the current layer
+        self.bias = np.array([0]*n_units)   
+        self.activations_last = last_layer.activations
+        
+        self.output = None
+        
+     
+        
+    def forward_step(self,X):
+        
+        self.output = np.maximum(0, np.dot(self.weights, X) + self.bias)
+        
+        return np.maximum(0, np.dot(self.weights, X) + self.bias)
+
+
+    def backward_step(self):
+        
+        # first get the error signals of the current layer from the layer before (higher index)
+        
+        self.errors = np.dot(next_layer.errors, next_layer.weights.T) * sigmoid_prime(np.dot(self.weights, last_layer.activations))
+        
+        # transform to a matrix with one zero column (for later calculation)
+        errors_matrix = np.hstack(self.errors, [0]*len(self.errors))t
+    
+        # second, create a matrix from the activations of the previous layer
+        
+        activations_last_matrix = np.hstack(last_layer.activations, [0]*len(self.errors)).T
+        
+        # third, multiply both matrices to get a matrix containing the partial derivative of the cost function w.r.t. each weight
+        # between the two layers.
+        
+        weights_jacobi_matrix = np.multiply(errors_matrix, activations_last_matrix)
+        
+        return weights_jacobi_matrix
+    
+    def update(self, lrate):
+        
+        self.weights = self.weights - lrate * weights_jacobi_matrix
+        
