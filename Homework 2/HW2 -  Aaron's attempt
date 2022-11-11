@@ -1,7 +1,6 @@
 import numpy as np
 import tensorflow as tf
 import tensorflow_datasets as tfds
-from tensorflow.keras.layers import Dense
 import random
 
 
@@ -46,12 +45,10 @@ class HiddenLayer(object):
         
         self.output = None
         
-     
         
     def forward_step(self,X):
         
-        self.output = np.maximum(0, np.dot(self.weights, X) + self.bias)
-        
+        self.output = np.maximum(0, np.dot(self.weights, X) + self.bias)  
         return np.maximum(0, np.dot(self.weights, X) + self.bias)
 
 
@@ -72,7 +69,6 @@ class HiddenLayer(object):
         # between the two layers.
         
         weights_jacobi_matrix = np.multiply(errors_matrix, activations_last_matrix)
-        
         return weights_jacobi_matrix
     
     def update(self, lrate):
