@@ -77,7 +77,7 @@ class HiddenLayer(object):
         self.errors = np.dot(next_layer.errors, next_layer.weights.T) * sigmoid_prime(np.dot(self.weights, last_layer.activations))
         
         # transform to a matrix with one zero column (for later calculation)
-        errors_matrix = np.hstack(self.errors, [0]*len(self.errors))t
+        errors_matrix = np.hstack(self.errors, [0]*len(self.errors))
     
         # second, create a matrix from the activations of the previous layer
         
