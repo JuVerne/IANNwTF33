@@ -9,6 +9,7 @@ import random
 x = np.random.normal(1,0,100)
 t = np.array([i**3 - i**2 for i in x])
 
+# some important activation functions and their derivatives
 
 def sigmoid(x):
     
@@ -24,6 +25,23 @@ def relu(x):
 
 def relu_prime(x):    
     return 1 if relu(x) > 0 else 0
+
+
+# a function to initialize a weight matrix with random values
+
+def generate_matrix(n, m):
+    """
+    Generate a n x n matrix with random values.
+    """
+    matrix = []
+    for i in range(n):
+        row = []
+        for j in range(m):
+            
+            row.append(np.random.normal(0, 1))
+        
+        matrix.append(row)
+    return matrix
 
 
         
