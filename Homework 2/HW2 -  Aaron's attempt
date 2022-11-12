@@ -44,11 +44,34 @@ def generate_matrix(n, m):
     return matrix
 
 
+class OutputLayer(object):
+    
+    def __init__(self, n_units, input_units, last_layer):
+        
+        # weights connecting the last layer to the current one
+        self.weights = generate_matrix(n_units, input_units)
+                
+        # biases for the current layer
+        self.bias = np.array([0]*n_units)  
+        
+    def forward_step(self,X):
+         return np.maximum(0, np.dot(self.weights, X) + self.bias)
+        
+    def backward_step(self, target, outputs):
+        
+        self.errors = cost_derivative(outputs, target)
+        return self.errors
+        
+    def cost_derivative(self, output_activations, y):
+        
+        return (output_activations-y) 
+        
+     
         
    
 class HiddenLayer(object):
     
-    def __init__(self, n_units, input_units, next_layer, last_layer):
+    def __init__(self, n_units, input_units, layer_input, layer_preactivation, layer_activation):
         
         # weights connecting the last layer to the current one
         self.weights = generate_matrix(n_units, input_units)
@@ -59,18 +82,22 @@ class HiddenLayer(object):
         
         #biases for the current layer
         self.bias = np.array([0]*n_units)   
-        self.activations_last = last_layer.activations
         
-        self.output = None
+        self.layer_input = None
+        self.layer_preactivation = None
+        self.layer_activation = None
         
+     
         
-    def forward_step(self,X):
+    def forward_step(self, X):
         
-        self.output = np.maximum(0, np.dot(self.weights, X) + self.bias)  
+        self.activations_last = X
+        self.activations = np.maximum(0, np.dot(self.weights, X) + self.bias)
+        
         return np.maximum(0, np.dot(self.weights, X) + self.bias)
 
 
-    def backward_step(self):
+    def backward_step(self, next_layer.errors, next_layer.weights):
         
         # first get the error signals of the current layer from the layer before (higher index)
         
@@ -87,9 +114,56 @@ class HiddenLayer(object):
         # between the two layers.
         
         weights_jacobi_matrix = np.multiply(errors_matrix, activations_last_matrix)
-        return weights_jacobi_matrix
-    
-    def update(self, lrate):
         
-        self.weights = self.weights - lrate * weights_jacobi_matrix
+        return weights_jacobi_matrix
+
+          
+        
+   
+class MLP(object):
+    
+    def __init__(self, n_layers):
+        
+        self.n_layers = n_layers
+        self.layers = [HiddenLayer() for i in range(n_layers)] + [FinalLayer()]
+        self.activations = None
+        self.errors = None
+        
+    def forwardpass(self, x):
+        
+        self.activations = []
+        for layer in self.layers: 
+            
+            x = layer.forwardstep(x)
+            # we store all the activation values for each layer since we need them for backprop.
+            self.activations.append(x)
+            
+        return x
+    
+    def backpropagation(self, learning_r, target, outputs):
+        
+        #going backward through the list of layers
+        self.errors = []
+        for i in range(len(self.layers)-1, -1, -1):
+            
+            # we treat the final layer slightly differently than the other layers
+                
+                gradient_matrix = self.layers[i].backwardstep(self.layers[i+1].errors, self.layers[i+1].weights) if i < len(self.layers)-1 
+                else self.layers[i].backwardstep(target, outputs) 
+
+                #storing the error signals for each layer for later use
+                self.errors.append(self.layers[i].errors)
+
+                #updating weights
+                self.layers[i].weights = self.layers[i].weights - learning_r*gradient_matrix
+
+         
+    def train(self, n_epochs, data, learning_r):
+        
+        for element in data[:n_epochs]:
+            
+            #the hope is that the data is stored as a list of input-output-tuples, where the first
+            #part of the tuple contains the input and the second the desired output
+            
+            backpropagation(learning_r, element[1], forwardpass(element[0]))
         
