@@ -3,63 +3,45 @@ import tensorflow as tf
 import tensorflow_datasets as tfds
 import random
 
-
 # create training data
-
-x = np.random.normal(1,0,100)
+x = np.random.rand(100)
 t = np.array([i**3 - i**2 for i in x])
+t_data = list(zip(x,t))
 
-# some important activation functions and their derivatives
-
+# activation functions
 def sigmoid(x):
-    
     return 1/(1 + np.exp(-x))
 
 def sigmoid_prime(x):
-    
     return sigmoid(x)*(1-sigmoid(x))
-
 
 def relu(x):
     return max(0, x)
 
 def relu_prime(x):    
     return 1 if relu(x) > 0 else 0
-
-
-# a function to initialize a weight matrix with random values
-
-def generate_matrix(n, m):
-    """
-    Generate a n x n matrix with random values.
-    """
-    matrix = []
-    for i in range(n):
-        row = []
-        for j in range(m):
-            
-            row.append(np.random.normal(0, 1))
-        
-        matrix.append(row)
-    return matrix
-
+    
+    
+    
+# we define two classes: one for the output layer and then one for each hidden layer
 
 class OutputLayer(object):
     
-    def __init__(self, n_units, input_units, last_layer):
+    def __init__(self, n_units, input_units):
         
         # weights connecting the last layer to the current one
-        self.weights = generate_matrix(n_units, input_units)
+        self.weights = np.random.rand(n_units, input_units)
                 
         # biases for the current layer
         self.bias = np.array([0]*n_units)  
         
     def forward_step(self,X):
+        
          return np.maximum(0, np.dot(self.weights, X) + self.bias)
         
     def backward_step(self, target, outputs):
         
-        self.errors = cost_derivative(outputs, target)
+        self.errors = self.cost_derivative(outputs, target)
         return self.errors
         
     def cost_derivative(self, output_activations, y):
@@ -71,14 +53,11 @@ class OutputLayer(object):
    
 class HiddenLayer(object):
     
-    def __init__(self, n_units, input_units, layer_input, layer_preactivation, layer_activation):
+    def __init__(self, n_units, input_units):
         
         # weights connecting the last layer to the current one
-        self.weights = generate_matrix(n_units, input_units)
-        
-        # weights connecting the next layer to the current one, we import this from another class
-        self.weights_next = next_layer.weights
-        self.error_next = next_layer.errors
+        self.weights = np.random.rand(n_units, input_units)
+
         
         #biases for the current layer
         self.bias = np.array([0]*n_units)   
@@ -94,38 +73,42 @@ class HiddenLayer(object):
         self.activations_last = X
         self.activations = np.maximum(0, np.dot(self.weights, X) + self.bias)
         
-        return np.maximum(0, np.dot(self.weights, X) + self.bias)
+        # bias missing - took out because it caused wrong dimensions
+
+        return np.maximum(0, np.dot(self.weights, X))
 
 
-    def backward_step(self, next_layer.errors, next_layer.weights):
+    def backward_step(self, next_layer_errors, next_layer_weights, last_layer_activations):
         
         # first get the error signals of the current layer from the layer before (higher index)
+
         
-        self.errors = np.dot(next_layer.errors, next_layer.weights.T) * sigmoid_prime(np.dot(self.weights, last_layer.activations))
+        self.errors = np.dot(next_layer_weights.T, next_layer_errors) * sigmoid_prime(np.dot(self.weights, last_layer_activations.T))
         
         # transform to a matrix with one zero column (for later calculation)
-        errors_matrix = np.hstack(self.errors, [0]*len(self.errors))
+        
+        errors_matrix = np.column_stack((self.errors, np.zeros(len(self.errors))))
+
     
         # second, create a matrix from the activations of the previous layer
         
-        activations_last_matrix = np.hstack(last_layer.activations, [0]*len(self.errors)).T
+        activations_last_matrix = np.row_stack((last_layer_activations, np.zeros(np.shape(last_layer_activations)[0])))
         
         # third, multiply both matrices to get a matrix containing the partial derivative of the cost function w.r.t. each weight
         # between the two layers.
         
-        weights_jacobi_matrix = np.multiply(errors_matrix, activations_last_matrix)
-        
+        weights_jacobi_matrix = np.matmul(errors_matrix, activations_last_matrix)
         return weights_jacobi_matrix
 
-          
-        
-   
+    
+
+
 class MLP(object):
     
-    def __init__(self, n_layers):
+    def __init__(self, n_layers = 1):
         
         self.n_layers = n_layers
-        self.layers = [HiddenLayer() for i in range(n_layers)] + [FinalLayer()]
+        self.layers = [HiddenLayer(10,1) for i in range(n_layers)] + [OutputLayer(1,10)]
         self.activations = None
         self.errors = None
         
@@ -133,8 +116,8 @@ class MLP(object):
         
         self.activations = []
         for layer in self.layers: 
-            
-            x = layer.forwardstep(x)
+
+            x = layer.forward_step(x)
             # we store all the activation values for each layer since we need them for backprop.
             self.activations.append(x)
             
@@ -148,22 +131,36 @@ class MLP(object):
             
             # we treat the final layer slightly differently than the other layers
                 
-                gradient_matrix = self.layers[i].backwardstep(self.layers[i+1].errors, self.layers[i+1].weights) if i < len(self.layers)-1 
-                else self.layers[i].backwardstep(target, outputs) 
+                gradient_matrix = self.layers[i].backward_step(self.layers[i+1].errors, self.layers[i+1].weights, self.activations[i-1]) if i < len(self.layers)-1 else self.layers[i].backward_step(target, outputs) 
 
                 #storing the error signals for each layer for later use
                 self.errors.append(self.layers[i].errors)
 
                 #updating weights
+
                 self.layers[i].weights = self.layers[i].weights - learning_r*gradient_matrix
 
          
     def train(self, n_epochs, data, learning_r):
         
-        for element in data[:n_epochs]:
+        loss_epoches = []
+        for x in range(n_epochs):
             
-            #the hope is that the data is stored as a list of input-output-tuples, where the first
-            #part of the tuple contains the input and the second the desired output
+            loss = 0
+            for element in data:
+
+                #the data is stored as a list of input-output-tuples, where the first
+                #part of the tuple contains the input and the second the desired output
+    
+                self.backpropagation(learning_r, element[1], self.forwardpass(element[0]))
+                loss += (1/2)*(element[1] - self.forwardpass(element[0]))**2
+
+            loss_epoches.append(loss/100)
             
-            backpropagation(learning_r, element[1], forwardpass(element[0]))
+        print("average loss: ", loss_epoches)
+
+test = MLP()
+
+#
+test.train(100,t_data, 0.01)
         
