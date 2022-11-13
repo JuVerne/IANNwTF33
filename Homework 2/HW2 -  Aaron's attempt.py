@@ -1,5 +1,6 @@
 import numpy as np
 import tensorflow as tf
+# import tensorflow_datasets as tfds
 import random
 from matplotlib import pyplot as plt
 
@@ -10,14 +11,18 @@ t_data = list(zip(x, t))
 
 # activation functions
 
+
 def sigmoid(x):
     return 1/(1 + np.exp(-x))
+
 
 def sigmoid_prime(x):
     return sigmoid(x)*(1-sigmoid(x))
 
+
 def relu(x):
     return max(0, x)
+
 
 def relu_prime(x):
     return 1 if relu(x) > 0 else 0
@@ -156,13 +161,13 @@ class MLP(object):
         x_axis = 0.5 + np.arange(n_epochs)
         y_axis = loss_epoches
 
+        plt.xlabel("Epoch")
+        plt.ylabel("Loss")
+
         fig, ax = plt.subplots()
         ax.plot(x_axis, y_axis)
         ax.set(xlim=(0, n_epochs),
-               ylim=(0, 0.25))
-
-        plt.xlabel("Epoch")
-        plt.ylabel("Loss")
+               ylim=(0, 0.3))
 
         plt.show()
 
