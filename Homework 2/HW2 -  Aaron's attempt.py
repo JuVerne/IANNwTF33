@@ -161,13 +161,13 @@ class MLP(object):
         x_axis = 0.5 + np.arange(n_epochs)
         y_axis = loss_epoches
 
-        plt.xlabel("Epoch")
-        plt.ylabel("Loss")
-
         fig, ax = plt.subplots()
         ax.plot(x_axis, y_axis)
         ax.set(xlim=(0, n_epochs),
-               ylim=(0, 0.3))
+               ylim=(0, 0.25))
+
+        plt.xlabel("Epoch")
+        plt.ylabel("Loss")
 
         plt.show()
 
